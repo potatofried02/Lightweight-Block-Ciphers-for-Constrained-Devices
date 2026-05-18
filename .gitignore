@@ -1,0 +1,137 @@
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+ENV/
+
+# pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Type checkers / linters
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.pyre/
+
+# pytest
+.pytest_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+
+# =============================================================================
+# CUDA / C / C++
+# =============================================================================
+# Object files and binaries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# CUDA-specific
+*.cubin
+*.ptx
+*.fatbin
+*.cu.cpp
+*.gpu
+
+# Debug info
+*.dSYM/
+*.pdb
+*.idb
+
+# CuPy / Numba JIT caches
+.cupy/
+__nv_*/
+.nv/
+
+# CMake 
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+build/
+
+
+# =============================================================================
+# Editors and IDEs
+# =============================================================================
+# VS Code
+.vscode/
+*.code-workspace
+
+# JetBrains
+.idea/
+*.iml
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+\#*\#
+.\#*
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# =============================================================================
+# OS-specific
+# =============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# =============================================================================
+# Secrets / local config
+# =============================================================================
+.env
+.env.local
+*.key
+*.pem
+secrets/
+config.local.*
