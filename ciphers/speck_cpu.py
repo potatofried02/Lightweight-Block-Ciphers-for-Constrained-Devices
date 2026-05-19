@@ -4,10 +4,7 @@ class SpeckCPU:
     that encrypts a 64-bit block with a 128-bit key
     '''
     BLOCK_SIZE = 64    # bits
-    KEY_SIZE = 128     # bits
     WORD_SIZE = 32     # bits
-    NUM_KEY_WORDS = 4
-    NUM_ROUNDS = 27
     ALPHA = 8
     BETA = 3
     # Mask used to force python to trim to 32-bits
@@ -19,8 +16,19 @@ class SpeckCPU:
         and subsequent encrypt/decrypt calls reuse the precomputed round keys.
 
         Arguments:
-            key -- 16 byte (128 bit) key.
+            key -- 16 byte (128 bit) or 12 byte (96 bit) key.
         '''
+        if (len(key) == 12):
+            self.key_size = 96      # bits
+            self.num_key_words = 3  
+            self.num_rounds = 26
+        elif (len(key) == 16):
+            self.key_size = 128     # bits
+            self.num_key_words = 4
+            self.num_rounds = 27
+        else:
+            raise ValueError(f"Key length must be 96 or 128 bits, given key is {len(key) * 8} bits")
+
         self._round_keys = self._key_expansion(key)
 
     def _rotr32(self, x: int, n: int) -> int:
@@ -51,23 +59,20 @@ class SpeckCPU:
     
     def _key_expansion(self, key: bytes) -> list[int]:
         '''
-        Expand the master key into 27 32-bit round keys.
+        Expand the master key into 26 or 27 32-bit round keys.
 
         Arguments:
-            key -- 16-byte (128 bit) master key.
+            key -- 16 byte (128 bit) or 12 byte (96 bit) key in hexadecimal format.
 
         Returns:
-            k -- List of 27 integers, each a 32-bit round key.
+            k -- List of 26 or 27 integers, each a 32-bit round key.
         '''
-        ell_2 = int.from_bytes(key[0:4],   'big')
-        ell_1 = int.from_bytes(key[4:8],   'big')
-        ell_0 = int.from_bytes(key[8:12],  'big')
-        k_0   = int.from_bytes(key[12:16], 'big')
-
-        ell = [ell_0, ell_1, ell_2]
+        m = self.num_key_words
+        k_0 = int.from_bytes(key[-4:], 'big')
+        ell = [int.from_bytes(key[(m - 2 - i) * 4 : (m - 1 - i) * 4], 'big') for i in range(m - 1)]
         k = [k_0]
 
-        for i in range(self.NUM_ROUNDS - 1):
+        for i in range(self.num_rounds - 1):
             new_ell = ((k[i] + self._rotr32(ell[i], self.ALPHA)) & self._MASK) ^ i
             ell.append(new_ell)
             k.append(self._rotl32(k[i], self.BETA) ^ new_ell)
@@ -87,7 +92,7 @@ class SpeckCPU:
         x = int.from_bytes(plaintext[0:4], 'big')
         y = int.from_bytes(plaintext[4:8], 'big')
 
-        for i in range(self.NUM_ROUNDS):
+        for i in range(self.num_rounds):
             x = ((self._rotr32(x, self.ALPHA) + y) & self._MASK) ^ self._round_keys[i]
             y = self._rotl32(y, self.BETA) ^ x
         
@@ -106,7 +111,7 @@ class SpeckCPU:
         x = int.from_bytes(ciphertext[0:4], 'big')
         y = int.from_bytes(ciphertext[4:8], 'big')
 
-        for i in reversed(range(self.NUM_ROUNDS)):
+        for i in reversed(range(self.num_rounds)):
             y = self._rotr32(y ^ x, self.BETA)
             x = self._rotl32(((x ^ self._round_keys[i]) - y) & self._MASK, self.ALPHA)
         
