@@ -79,3 +79,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 pytest
 ```
+### separate tests.
+```
+pytest -v tests/test_speck_gpu.py
+```
