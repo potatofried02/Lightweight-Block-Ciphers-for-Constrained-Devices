@@ -12,11 +12,11 @@ class SpeckCPU:
 
     def __init__(self, key: bytes):
         '''
-        Initialize the cipher with a 128-bit key. The key schedule runs once
+        Initialize the cipher with a 128-bit 06 96-bit key. The key schedule runs once
         and subsequent encrypt/decrypt calls reuse the precomputed round keys.
 
         Arguments:
-            key -- 16 byte (128 bit) or 12 byte (96 bit) key.
+            key -- 16 byte (128-bit) or 12 byte (96-bit) key.
         '''
         if (len(key) == 12):
             self.key_size = 96      # bits
@@ -29,7 +29,7 @@ class SpeckCPU:
         else:
             raise ValueError(f"Key length must be 96 or 128 bits, given key is {len(key) * 8} bits")
 
-        self._round_keys = self._key_expansion(key)
+        self._round_keys = self._key_schedule(key)
 
     def _rotr32(self, x: int, n: int) -> int:
         '''
@@ -57,12 +57,12 @@ class SpeckCPU:
         '''
         return ((x << n) | (x >> (32 - n))) & self._MASK
     
-    def _key_expansion(self, key: bytes) -> list[int]:
+    def _key_schedule(self, key: bytes) -> list[int]:
         '''
         Expand the master key into 26 or 27 32-bit round keys.
 
         Arguments:
-            key -- 16 byte (128 bit) or 12 byte (96 bit) key in hexadecimal format.
+            key -- 16 byte (128-bit) or 12 byte (96-bit) key in hexadecimal format.
 
         Returns:
             k -- List of 26 or 27 integers, each a 32-bit round key.
@@ -84,7 +84,7 @@ class SpeckCPU:
         Encrypt a single 64-bit block.
 
         Arguments:
-            plaintext -- 8 bytes (64 bits) of plaintext.
+            plaintext -- 8 bytes (64-bits) of plaintext.
 
         Returns:
             8 bytes of encrypted plaintext.
@@ -103,7 +103,7 @@ class SpeckCPU:
         Decrypt a single 64-bit block.
 
         Arguments:
-            ciphertext -- 8 bytes (64 bits) of ciphertext.
+            ciphertext -- 8 bytes (64-bits) of ciphertext.
 
         Returns:
             8 bytes of recovered plaintext.
