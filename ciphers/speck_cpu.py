@@ -1,4 +1,3 @@
-
 class SpeckCPU:
     '''
     CPU based implementation of SPECK-64/128, a lightweight block cipher, 
