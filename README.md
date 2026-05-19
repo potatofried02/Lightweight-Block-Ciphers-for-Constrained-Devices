@@ -75,7 +75,7 @@ pip install pycryptodome>=3.20 numpy>=1.26 pytest>=8.0
 ### 
 ```
 python -m venv venv
-source venv/bin/activate   # Windows면 venv\Scripts\activate
+source venv/bin/activate   
 pip install -r requirements.txt
 pytest
 ```
