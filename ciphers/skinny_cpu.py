@@ -22,7 +22,9 @@ class SkinnyCPU:
     def __init__(self, key: bytes):
         '''
         Initialize the cipher with a 64-bit, 128-bit, or 192-bit key. The key schedule runs once
-        and subsequent encrypt/decrypt calls reuse the precomputed round keys.
+        and subsequent encrypt/decrypt calls reuse the precomputed round keys. Internal state is 
+        viewed as a 4x4 square array of cells, where each cell is a nibble in original paper. A 
+        flattened version is used here to improve implementation efficiency.
 
         Arguments:
             key -- 64-bit, 128-bit, or 192-bit key
@@ -48,18 +50,18 @@ class SkinnyCPU:
         initial_tweakey = [nibbles[16*i : 16*(i+1)] for i in range(self.num_tweakey)]
         self.round_subtweakeys = self._key_schedule(initial_tweakey)
 
-    def _bytes_to_nibbles(self, key: bytes) -> list[int]:
+    def _bytes_to_nibbles(self, byte: bytes) -> list[int]:
         '''
-        Unpacks given key to nibbles, high-nibble first (4 bits/nibble)
+        Unpacks given bytes to nibbles, high nibble first (4 bits/nibble).
 
         Arguments:
-            key -- 64-bit, 128-bit, or 192-bit key
+            byte -- Input bytes
 
         Returns:
-            nibbles -- List of integers representing the input key's byte values unpacked into nibbles
+            nibbles -- List of nibbles
         '''
         nibbles = []
-        for b in key:
+        for b in byte:
             nibbles.append(b >> self.CELL_SIZE)
             nibbles.append(b & 0xF)
 
@@ -67,13 +69,13 @@ class SkinnyCPU:
     
     def _nibbles_to_bytes(self, nibbles: list[int]) -> bytes:
         '''
-        Pack a list of nibbles into bytes, two nibbles per byte (high first).
+        Pack a list of nibbles into bytes, high nibble first (2 nibbles/byte).
         
         Arguments:
-            nibbles -- list of nibbles derived from master key
+            nibbles -- List of nibbles
 
         Returns:
-            bytes -- nibbles converted back into bytes
+            bytes -- Nibbles converted back into bytes
         '''
         return bytes((nibbles[2*i] << 4) | nibbles[2*i + 1] for i in range(len(nibbles) // 2))
     
@@ -213,7 +215,7 @@ class SkinnyCPU:
 
     def _inv_mix_columns(self, state: list[int]) -> None:
         '''
-        Invert the mix column operation.
+        Multiply each column by the inverse of the binary matrix M.
 
         Arguments:
             state -- List of cells (each a nibble) that describe the internal state of the cipher.
