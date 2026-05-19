@@ -70,3 +70,12 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install pycryptodome>=3.20 numpy>=1.26 pytest>=8.0
 ```
+## Linux (terminal)
+
+### 
+```
+python -m venv venv
+source venv/bin/activate   # Windows면 venv\Scripts\activate
+pip install -r requirements.txt
+pytest
+```
