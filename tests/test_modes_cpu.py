@@ -74,7 +74,6 @@ ROUNDTRIP_VECTOR = {
     'plaintext':  b"We are group 19 and this is the ECE 268 final project."
 }
 
-
 class Test_CBC_Skinny64_128_Roundtrip:
     '''
     Validates end-to-end CBC + SKINNY-64/128 round-trip with NIST key/IV
