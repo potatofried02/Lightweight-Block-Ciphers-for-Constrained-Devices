@@ -1,4 +1,4 @@
-from Crypto.Cipher import AES
+from ciphers.aes_cpu import AesCPU
 from modes.cbc import CBC
 from ciphers.skinny_cpu import SkinnyCPU
 from ciphers.speck_cpu import SpeckCPU 
@@ -32,9 +32,7 @@ class Test_CBC_NIST_AES128:
     but the CBC class applies PKCS#7, so the encryption produces a ciphertext
     with one extra block (padding). Meaning that post encryption, the padding 
     will be removed from the ciphertext for comparison with the NIST test vectors 
-    (CBC class takes care of padding for decryption). The reference AES implementation 
-    is from the PyCryptodome library, and AES.MODE_ECB is fed into the CBC class 
-    as the single-block AES primitive.
+    (CBC class takes care of padding for decryption).
     '''
     def test_encrypt(self):
         '''
@@ -42,7 +40,7 @@ class Test_CBC_NIST_AES128:
         that matches NIST CBC-AES128 ciphertext.
         '''
         v = NIST_CBC_AES128_VECTOR
-        cbc = CBC(AES.new(v['key'], AES.MODE_ECB), v['iv'], block_size=16)
+        cbc = CBC(AesCPU(v['key']), v['iv'], block_size=16)
         ct = cbc.encrypt(v['plaintext'])
 
         assert ct[:len(v['ciphertext'])] == v['ciphertext'], (
@@ -56,7 +54,7 @@ class Test_CBC_NIST_AES128:
         Encrypt -> decrypt to verify that CBC with AES-128 recovers the NIST plaintext.
         '''
         v = NIST_CBC_AES128_VECTOR
-        cbc = CBC(AES.new(v['key'], AES.MODE_ECB), v['iv'], block_size=16)
+        cbc = CBC(AesCPU(v['key']), v['iv'], block_size=16)
         ct = cbc.encrypt(v['plaintext'])
         recovered = cbc.decrypt(ct)
 
@@ -138,11 +136,7 @@ NIST_CTR_AES128_VECTOR = {
 
 class Test_CTR_NIST_AES128:
     '''
-    Validates CTR against NIST CTR-AES128 test vectors. Unlike CBC, CTR uses no 
-    padding, so the ciphertext length matches the plaintext length and 
-    can be compared directly to the NIST reference. The reference AES implementation 
-    is from the PyCryptodome library, and AES.MODE_ECB is fed into the CTR class 
-    as the single-block AES primitive.
+    Validates CTR against NIST CTR-AES128 test vectors.
     '''
     def test_encrypt(self):
         '''
@@ -150,7 +144,7 @@ class Test_CTR_NIST_AES128:
         that matches NIST CTR-AES128 ciphertext.
         '''
         v = NIST_CTR_AES128_VECTOR
-        ctr = CTR(AES.new(v['key'], AES.MODE_ECB), v['counter'], block_size=16)
+        ctr = CTR(AesCPU(v['key']), v['counter'], block_size=16)
         ct = ctr.encrypt(v['plaintext'])
 
         assert ct == v['ciphertext'], (
@@ -165,7 +159,7 @@ class Test_CTR_NIST_AES128:
         that matches NIST CBC-AES128 plaintext.
         '''
         v = NIST_CTR_AES128_VECTOR
-        ctr = CTR(AES.new(v['key'], AES.MODE_ECB), v['counter'], block_size=16)
+        ctr = CTR(AesCPU(v['key']), v['counter'], block_size=16)
         recovered = ctr.decrypt(v['ciphertext'])
 
         assert recovered == v['plaintext'], (
