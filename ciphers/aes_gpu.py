@@ -1,6 +1,9 @@
-class AesCPU:
+import cupy as cp
+import numpy as np
+
+class AesGPU:
     '''
-    CPU-based implementation of AES-128
+    GPU-based implementation of AES-128
     '''
     NK = 4  # key length (number of 32-bit words)
     NB = 4  # block size (number of 32-bit words)
@@ -59,9 +62,22 @@ class AesCPU:
             key -- 128-bit key
         '''
         self.key = key
-        self.w = self._key_schedule(key)
 
-    def _xtime(self, b: int) -> int:
+        # load sboxes onto GPU
+        self._sbox = cp.asarray(self.S_BOX, dtype=cp.uint8)
+        self._inv_sbox = cp.asarray(self.INV_SBOX, dtype=cp.uint8)
+
+        # load round keys onto GPU
+        w = self._key_schedule(key)
+        rk = np.empty((self.NR + 1, 16), dtype=np.uint8)
+        for rnd in range(self.NR + 1):
+            for c in range(4):
+                word = w[4 * rnd + c]
+                for r in range(4):
+                    rk[rnd, r + 4 * c] = word[r]
+        self.round_keys = cp.asarray(rk)
+
+    def _xtime(self, b: cp.ndarray) -> cp.ndarray:
         '''
         Multiply a byte b by c = {02} in GF(2^8).
         
@@ -71,31 +87,30 @@ class AesCPU:
         Returns:
             Input byte multiplied by c = {02}
         '''
-        b <<= 1
-        if b & 0x100:
-            b ^= 0x11b 
+        b = b.astype(cp.uint16) << 1
+        b = cp.where(b & 0x100, b ^ 0x11b, b)
 
-        return b & 0xff
+        return (b & 0xff).astype(cp.uint8)
     
-    def _mul(self, a: int, b: int) -> int:
+    def _mul(self, a: int, b: cp.ndarray) -> cp.ndarray:
         '''
         Multiply two bytes in GF(2^8).
         
         Arguments:
             a -- 1st input byte
-            b -- 2nd input byte
+            b -- 2nd input byte(s)
         
         Returns:
             Product of a and b in in GF(2^8)
         '''
-        p = 0
+        p = cp.zeros_like(b)
         for _ in range(8):
-            if b & 1:
-                p ^= a
-            b >>= 1
-            a = self._xtime(a)
+            if a & 1:
+                p ^= b
+            a >>= 1
+            b = self._xtime(b)
 
-        return p & 0xff
+        return (p & 0xff).astype(cp.uint8)
     
     def _key_schedule(self, key: bytes) -> list[list[int]]:
         '''
@@ -118,7 +133,7 @@ class AesCPU:
 
         return w
 
-    def _sub_bytes(self, state: list[int]) -> list[int]:
+    def _sub_bytes(self, state: cp.ndarray) -> cp.ndarray:
         '''
         Apply S-box independently to each byte in the state.
         
@@ -128,9 +143,9 @@ class AesCPU:
         Returns:
             Input state modified by the S-box
         '''
-        return [self.S_BOX[b] for b in state]
+        return self._sbox[state]
     
-    def _inv_sub_bytes(self, state: list[int]) -> list[int]:
+    def _inv_sub_bytes(self, state: cp.ndarray) -> cp.ndarray:
         '''
         Apply inverse S-box independently to each byte in the state.
         
@@ -140,9 +155,9 @@ class AesCPU:
         Returns:
             Input state modified by the inverse S-box
         '''
-        return [self.INV_SBOX[b] for b in state]
+        return self._inv_sbox[state]
 
-    def _shift_rows(self, state: list[int]) -> list[int]:
+    def _shift_rows(self, state: cp.ndarray) -> cp.ndarray:
         '''
         Cyclically shift the last three rows of the state.
 
@@ -152,14 +167,14 @@ class AesCPU:
         Returns:
             Input state with last three rows cyclically shifted
         '''
-        out = [0] * 16
+        out = cp.empty_like(state)
         for r in range(4):
             for c in range(4):
-                out[r + 4 * c] = state[r + 4 * ((c + r) % 4)]
+                out[:, r + 4 * c] = state[:, r + 4 * ((c + r) % 4)]
 
         return out
     
-    def _inv_shift_rows(self, state: list[int]) -> list[int]:
+    def _inv_shift_rows(self, state: cp.ndarray) -> cp.ndarray:
         '''
         Apply the inverse cyclical shift to the last three rows of the state.
 
@@ -169,14 +184,14 @@ class AesCPU:
         Returns:
             Input state with inverse cyclical shift applied to the last three rows
         '''
-        out = [0] * 16
+        out = cp.empty_like(state)
         for r in range(4):
             for c in range(4):
-                out[r + 4 * c] = state[r + 4 * ((c - r) % 4)]
+                out[:, r + 4 * c] = state[:, r + 4 * ((c - r) % 4)]
 
         return out
 
-    def _mix_columns(self, state: list[int]) -> list[int]:
+    def _mix_columns(self, state: cp.ndarray) -> cp.ndarray:
         '''
         Multiples each of the four columns of the state by a single fixed matrix.
 
@@ -186,17 +201,17 @@ class AesCPU:
         Returns:
             Input state's columns transformed by the fixed matrix
         '''
-        out = [0] * 16
+        out = cp.empty_like(state)
         for c in range(4):
-            s0, s1, s2, s3 = (state[r + 4 * c] for r in range(4))
-            out[0 + 4 * c] = self._mul(2, s0) ^ self._mul(3, s1) ^ s2 ^ s3
-            out[1 + 4 * c] = s0 ^ self._mul(2, s1) ^ self._mul(3, s2) ^ s3
-            out[2 + 4 * c] = s0 ^ s1 ^ self._mul(2, s2) ^ self._mul(3, s3)
-            out[3 + 4 * c] = self._mul(3, s0) ^ s1 ^ s2 ^ self._mul(2, s3)
+            s0, s1, s2, s3 = (state[:, r + 4 * c] for r in range(4))
+            out[:, 0 + 4 * c] = self._mul(2, s0) ^ self._mul(3, s1) ^ s2 ^ s3
+            out[:, 1 + 4 * c] = s0 ^ self._mul(2, s1) ^ self._mul(3, s2) ^ s3
+            out[:, 2 + 4 * c] = s0 ^ s1 ^ self._mul(2, s2) ^ self._mul(3, s3)
+            out[:, 3 + 4 * c] = self._mul(3, s0) ^ s1 ^ s2 ^ self._mul(2, s3)
 
         return out
     
-    def _inv_mix_columns(self, state: list[int]) -> list[int]:
+    def _inv_mix_columns(self, state: cp.ndarray) -> cp.ndarray:
         '''
         Multiples each of the four columns of the state by a single fixed matrix.
 
@@ -206,17 +221,17 @@ class AesCPU:
         Returns:
             Input state's columns transformed by the fixed matrix
         '''
-        out = [0] * 16
+        out = cp.empty_like(state)
         for c in range(4):
-            s0, s1, s2, s3 = (state[r + 4 * c] for r in range(4))
-            out[0 + 4 * c] = self._mul(0x0e, s0) ^ self._mul(0x0b, s1) ^ self._mul(0x0d, s2) ^ self._mul(0x09, s3)
-            out[1 + 4 * c] = self._mul(0x09, s0) ^ self._mul(0x0e, s1) ^ self._mul(0x0b, s2) ^ self._mul(0x0d, s3)
-            out[2 + 4 * c] = self._mul(0x0d, s0) ^ self._mul(0x09, s1) ^ self._mul(0x0e, s2) ^ self._mul(0x0b, s3)
-            out[3 + 4 * c] = self._mul(0x0b, s0) ^ self._mul(0x0d, s1) ^ self._mul(0x09, s2) ^ self._mul(0x0e, s3)
+            s0, s1, s2, s3 = (state[:, r + 4 * c] for r in range(4))
+            out[:, 0 + 4 * c] = self._mul(0x0e, s0) ^ self._mul(0x0b, s1) ^ self._mul(0x0d, s2) ^ self._mul(0x09, s3)
+            out[:, 1 + 4 * c] = self._mul(0x09, s0) ^ self._mul(0x0e, s1) ^ self._mul(0x0b, s2) ^ self._mul(0x0d, s3)
+            out[:, 2 + 4 * c] = self._mul(0x0d, s0) ^ self._mul(0x09, s1) ^ self._mul(0x0e, s2) ^ self._mul(0x0b, s3)
+            out[:, 3 + 4 * c] = self._mul(0x0b, s0) ^ self._mul(0x0d, s1) ^ self._mul(0x09, s2) ^ self._mul(0x0e, s3)
 
         return out
 
-    def _add_round_key(self, state: list[int], rnd: int) -> list[int]:
+    def _add_round_key(self, state: cp.ndarray, rnd: int) -> cp.ndarray:
         '''
         Round key is combined with the state by applying the bitwise XOR operation.
 
@@ -227,13 +242,7 @@ class AesCPU:
         Returns:
             Input state transformed by the round key
         '''
-        out = list(state)
-        for c in range(4):
-            word = self.w[4 * rnd + c]
-            for r in range(4):
-                out[r + 4 * c] ^= word[r]
-
-        return out
+        return state ^ self.round_keys[rnd]
 
     def encrypt(self, plaintext: bytes) -> bytes:
         ''' 
@@ -245,7 +254,7 @@ class AesCPU:
         Returns:
             16 bytes of encrypted plaintext
         '''
-        state = list(plaintext)              
+        state = cp.asarray(np.frombuffer(plaintext, dtype=np.uint8)).reshape(-1, 16)              
         state = self._add_round_key(state, 0)
         for rnd in range(1, self.NR):
             state = self._sub_bytes(state)
@@ -256,7 +265,7 @@ class AesCPU:
         state = self._shift_rows(state)
         state = self._add_round_key(state, self.NR)  
 
-        return bytes(state)
+        return cp.asnumpy(state).reshape(-1).tobytes()
 
     def decrypt(self, ciphertext: bytes) -> bytes:
         ''' 
@@ -268,7 +277,7 @@ class AesCPU:
         Returns:
             16 bytes of recovered plaintext
         '''
-        state = list(ciphertext)
+        state = cp.asarray(np.frombuffer(ciphertext, dtype=np.uint8)).reshape(-1, 16)
         state = self._add_round_key(state, self.NR)
         for rnd in range(self.NR - 1, 0, -1):
             state = self._inv_shift_rows(state)
@@ -279,4 +288,4 @@ class AesCPU:
         state = self._inv_sub_bytes(state)
         state = self._add_round_key(state, 0)
 
-        return bytes(state)
+        return cp.asnumpy(state).reshape(-1).tobytes()
