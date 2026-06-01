@@ -70,7 +70,7 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install pycryptodome>=3.20 numpy>=1.26 pytest>=8.0
 ```
-## Linux (terminal)
+## Linux (terminal) (Do not do on conda env! Do on base!, other wise conda env collides with venv!)
 
 ### 
 ```
