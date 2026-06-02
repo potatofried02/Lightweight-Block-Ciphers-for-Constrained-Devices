@@ -51,7 +51,7 @@ Expected output: `GPUs detected: 1` (or higher).
 ### 1. Clone the repo and create a virtual environment
 
 ```bash
-git clone https://github.com/BJKin/Lightweight-Block-Ciphers-for-Constrained-Devices.git
+git clone https://github.com/potatofried02/Lightweight-Block-Ciphers-for-Constrained-Devices.git
 cd Lightweight-Block-Ciphers-for-Constrained-Devices
 python3.14 -m venv .venv
 ```

@@ -244,6 +244,16 @@ class AesGPU:
         '''
         return state ^ self.round_keys[rnd]
 
+    def encrypt_blocks(self, plaintext: bytes) -> bytes:
+        ''' 
+        Fixed:
+            Provide encrypt_blocks() for benchmark_throughput hasattr(Get Function).
+        '''
+        return self.encrypt(plaintext)
+
+    def decrypt_blocks(self, ciphertext: bytes) -> bytes:
+        return self.decrypt(ciphertext)
+
     def encrypt(self, plaintext: bytes) -> bytes:
         ''' 
         Encrypt a single 128-bit block.
@@ -269,7 +279,7 @@ class AesGPU:
 
     def decrypt(self, ciphertext: bytes) -> bytes:
         ''' 
-        Encrypt a single 128-bit block.
+        Decrypt a single 128-bit block.
 
         Arguments:
             ciphertext -- 16 bytes (128-bits) of ciphertext
