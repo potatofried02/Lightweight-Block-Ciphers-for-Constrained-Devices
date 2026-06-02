@@ -17,7 +17,7 @@
 ### 1. Clone the repo and create a virtual environment
 
 ```powershell
-git clone https://github.com/BJKin/Lightweight-Block-Ciphers-for-Constrained-Devices.git
+git clone https://github.com/potatofried02/Lightweight-Block-Ciphers-for-Constrained-Devices.git
 cd Lightweight-Block-Ciphers-for-Constrained-Devices
 py -3.14 -m venv .venv
 ```
