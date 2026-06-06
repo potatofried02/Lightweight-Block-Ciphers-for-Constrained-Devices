@@ -1,0 +1,4 @@
+cipher,sbox_bytes,const_bytes,perm_bytes,keyschedule_bytes,total_bytes
+SPECK-64/128,0,0,0,108,108
+SKINNY-64/128,32,62,48,288,430
+AES-128,512,11,0,176,699

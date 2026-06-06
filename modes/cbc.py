@@ -65,14 +65,14 @@ class CBC:
             ciphertext -- Encrypted plaintext
         '''
         padded = self._pad(plaintext)
-        ciphertext = b""
+        ciphertext = bytearray()
         prev = self.iv
         for i in range(0, len(padded), self.block_size):
             block = padded[i:i + self.block_size]
             c = self.cipher.encrypt(self._xor(block, prev))
             ciphertext += c
             prev = c
-        return ciphertext
+        return bytes(ciphertext)
         
     def decrypt(self, ciphertext: bytes) -> bytes:
         ''' 
@@ -84,11 +84,11 @@ class CBC:
         Returns:
             Recovered plaintext
         '''
-        plaintext = b""
+        plaintext = bytearray()
         prev = self.iv
         for i in range(0, len(ciphertext), self.block_size):
             block = ciphertext[i:i + self.block_size]
             p = self._xor(self.cipher.decrypt(block), prev)
             plaintext += p
             prev = block
-        return self._unpad(plaintext)
+        return self._unpad(bytes(plaintext))

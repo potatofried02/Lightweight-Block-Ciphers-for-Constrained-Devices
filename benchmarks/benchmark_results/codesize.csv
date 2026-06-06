@@ -1,0 +1,7 @@
+cipher,device,file,loc,ptx_bytes
+SPECK-64/128,CPU,../ciphers/speck_cpu.py,46,N/A
+SPECK-64/128,GPU,../ciphers/speck_gpu.py,80,N/A
+SKINNY-64/128,CPU,../ciphers/skinny_cpu.py,111,N/A
+SKINNY-64/128,GPU,../ciphers/skinny_gpu.py,138,N/A
+AES-128,CPU,../ciphers/aes_cpu.py,132,N/A
+AES-128,GPU,../ciphers/aes_gpu.py,141,N/A

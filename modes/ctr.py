@@ -33,7 +33,7 @@ class CTR:
         Returns:
             ciphertext -- Encrypted plaintext
         '''
-        ciphertext = b""
+        ciphertext = bytearray()
         counter_int = int.from_bytes(self.counter, byteorder="big")
         max_counter = 1 << (self.block_size * 8)
 
@@ -44,7 +44,7 @@ class CTR:
             ciphertext += self._xor(block, keystream[:len(block)])
             counter_int = (counter_int + 1) % max_counter
 
-        return ciphertext
+        return bytes(ciphertext)
 
     def decrypt(self, ciphertext: bytes) -> bytes:
         ''' 
